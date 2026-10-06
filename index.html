@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Resume Screener</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#16213a;--mute:#5d6577;--line:#d9d6cc;--mark:#ffe36e;--good:#1f7a4d;--bad:#b3402a;--accent:#2b4ea2;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161f;--card:#1b2130;--ink:#e8ebf3;--mute:#9aa3b8;--line:#2e364a;--mark:#7a6a12;--good:#4cc38a;--bad:#ff8a70;--accent:#8fa8ff}}
+:root[data-theme="dark"]{--bg:#12161f;--card:#1b2130;--ink:#e8ebf3;--mute:#9aa3b8;--line:#2e364a;--mark:#7a6a12;--good:#4cc38a;--bad:#ff8a70;--accent:#8fa8ff}
+*,*:before,*:after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Source Serif 4",Georgia,serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 48px}
+h1,h2,label,button{font-family:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif}
+h1{font-size:2rem;line-height:1.1;margin:8px 0 6px;letter-spacing:-.02em}
+.lead{color:var(--mute);margin:0 0 20px;max-width:56ch}
+.grid{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
+label{display:block;font-weight:700;margin-bottom:6px}
+textarea{width:100%;min-height:200px;padding:12px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:15px/1.5 "Source Serif 4",Georgia,serif;resize:vertical}
+textarea:focus,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+button{border:0;border-radius:6px;padding:12px 18px;font-weight:700;font-size:1rem;cursor:pointer}
+.primary{background:var(--accent);color:#fff}
+.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+#out{display:none;margin-top:12px}
+.score{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.num{font:700 4rem/1 "Bricolage Grotesque",sans-serif;letter-spacing:-.03em}
+.verdict{font:700 1.2rem "Bricolage Grotesque",sans-serif}
+.bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin:10px 0 18px}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .5s}
+h2{font-size:1.1rem;margin:20px 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.chips li{padding:3px 10px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-size:.9rem}
+.chips.ok li{border-color:var(--good);color:var(--good)}
+.chips.no li{border-color:var(--bad);color:var(--bad)}
+.note{color:var(--mute);margin:6px 0}
+.resume{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto}
+mark{background:var(--mark);color:inherit;padding:0 2px;border-radius:2px}
+.fine{color:var(--mute);font-size:.85rem;margin-top:28px}
+</style>
+</head>
+<body>
+<main>
+<h1>Resume screener</h1>
+<p class="lead">Paste a job description and a resume. The page checks which required skills the resume covers and highlights them. Everything runs in your browser; nothing is uploaded.</p>
+<div class="grid">
+<div><label for="jd">Job description</label><textarea id="jd" placeholder="Paste the job description here"></textarea></div>
+<div><label for="cv">Resume text</label><textarea id="cv" placeholder="Paste the resume text here"></textarea></div>
+</div>
+<div class="row">
+<button class="primary" id="go">Screen resume</button>
+<button class="ghost" id="sample">Load sample</button>
+<button class="ghost" id="clear">Clear</button>
+</div>
+<section id="out" aria-live="polite">
+<div class="score"><span class="num" id="pct">0%</span><span class="verdict" id="verdict"></span></div>
+<div class="bar"><i id="fill" style="width:0"></i></div>
+<p class="note" id="exp"></p>
+<h2>Skills found in the resume</h2><ul class="chips ok" id="hit"></ul>
+<h2>Required skills missing</h2><ul class="chips no" id="miss"></ul>
+<h2>Resume with matches highlighted</h2><div class="resume" id="marked"></div>
+</section>
+<p class="fine">This is keyword matching, so it can miss skills described in other words. Use the score to prioritise, and have a person make the final call.</p>
+</main>
+<script>
+var SKILLS=[["Python","py"],["Java"],["JavaScript","js","ecmascript"],["TypeScript"],["C++"],["C#"],["Go","golang"],["Rust"],["PHP"],["Ruby"],["Kotlin"],["Swift"],["SQL"],["MySQL"],["PostgreSQL","postgres"],["MongoDB"],["Redis"],["HTML"],["CSS"],["React","react.js","reactjs"],["Angular"],["Vue","vue.js"],["Node.js","node","nodejs"],["Express"],["Django"],["Flask"],["FastAPI"],["Spring Boot","spring"],["REST","restful"],["GraphQL"],["Git"],["GitHub"],["Docker"],["Kubernetes","k8s"],["AWS"],["Azure"],["GCP","google cloud"],["Linux"],["CI/CD","jenkins"],["Terraform"],["Machine Learning","ml"],["Deep Learning"],["NLP","natural language processing"],["Computer Vision"],["TensorFlow"],["PyTorch"],["scikit-learn","sklearn"],["Pandas"],["NumPy"],["Data Analysis"],["Data Visualization"],["Power BI"],["Tableau"],["Excel"],["Statistics"],["Spark"],["Hadoop"],["Airflow"],["ETL"],["Agile"],["Scrum"],["Jira"],["Figma"],["UI/UX","ux","ui design"],["Testing","unit testing","pytest","junit"],["Selenium"],["Microservices"],["Communication"],["Leadership"],["Teamwork"],["Problem Solving"],["Project Management"],["Cybersecurity","security"],["Networking"],["DevOps"],["Android"],["iOS"],["Flutter"],["Tailwind"],["Bootstrap"]];
+var $=function(i){return document.getElementById(i)};
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function rx(t){return new RegExp("(?<![A-Za-z0-9+#.])"+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?![A-Za-z0-9+#])","i")}
+function has(text,s){return s.some(function(t){return rx(t).test(text)})}
+function years(t){var m,max=0,r=/(\d+)\+?\s*(?:years|yrs)/gi;while((m=r.exec(t)))max=Math.max(max,+m[1]);return max}
+function screen(){
+ var jd=$("jd").value,cv=$("cv").value;
+ if(!jd.trim()||!cv.trim()){alert("Add both a job description and a resume first.");return}
+ var need=SKILLS.filter(function(s){return has(jd,s)});
+ var hit=need.filter(function(s){return has(cv,s)}),miss=need.filter(function(s){return !has(cv,s)});
+ var extra=SKILLS.filter(function(s){return !has(jd,s)&&has(cv,s)});
+ var pct=need.length?Math.round(hit.length/need.length*100):0;
+ var rq=years(jd),have=years(cv),expTxt="";
+ if(rq){expTxt="Job asks for "+rq+"+ years. Resume mentions up to "+(have||"no")+" years."; if(have&&have<rq)pct=Math.max(0,pct-10)}
+ $("out").style.display="block";
+ $("pct").textContent=pct+"%";$("fill").style.width=pct+"%";
+ $("verdict").textContent=!need.length?"No known skills found in the job description":pct>=70?"Strong match":pct>=40?"Possible match":"Weak match";
+ $("exp").textContent=expTxt;
+ function chips(id,a){$(id).innerHTML=a.length?a.map(function(s){return "<li>"+esc(s[0])+"</li>"}).join(""):"<li>None</li>"}
+ chips("hit",hit);chips("miss",miss);
+ var html=esc(cv);
+ hit.concat(extra).forEach(function(s){s.forEach(function(t){var r=new RegExp("(?<![A-Za-z0-9+#.&;])"+esc(t).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?![A-Za-z0-9+#;])","gi");html=html.replace(r,function(m){return "<mark>"+m+"</mark>"})})});
+ $("marked").innerHTML=html;
+ $("out").scrollIntoView({behavior:"smooth"});
+}
+$("go").onclick=screen;
+$("clear").onclick=function(){$("jd").value="";$("cv").value="";$("out").style.display="none"};
+$("sample").onclick=function(){
+ $("jd").value="Data Analyst\nWe need 2+ years of experience with Python, SQL, Excel and Power BI. Knowledge of statistics, Tableau and data visualization is required. Git and Agile experience preferred. Strong communication skills.";
+ $("cv").value="Asha Rao\nData analyst with 3 years of experience.\n\nSkills: Python, Pandas, SQL, PostgreSQL, Excel, Power BI, Git\nBuilt weekly sales dashboards in Power BI and automated reports with Python and SQL. Worked in an Agile team and presented findings to managers.";
+};
+</script>
+</body>
+</html>
